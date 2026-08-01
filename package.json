@@ -1,0 +1,53 @@
+{
+  "name": "anti-loop-guard",
+  "version": "1.1.0",
+  "description": "Passive loop detection MCP server for AI coding agents. Detects tool-call repetition, semantic similarity loops, pattern cycles, and context budget exhaustion — no agent initiative required.",
+  "keywords": [
+    "mcp",
+    "claude-code",
+    "loop-detection",
+    "anti-loop",
+    "agent-guard",
+    "context-budget",
+    "ai-agent"
+  ],
+  "license": "MIT",
+  "author": "Xu Yan",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ooooooomg/anti-loop-guard"
+  },
+  "bin": {
+    "anti-loop-guard": "./dist/src/index.js",
+    "anti-loop-guard-init": "./dist/cli/init.js"
+  },
+  "main": "./dist/src/index.js",
+  "type": "module",
+  "files": [
+    "dist/src/",
+    "dist/cli/",
+    "hooks/",
+    "README.md",
+    "README_zh.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/src/index.js",
+    "test": "npx vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test",
+    "cli": "node dist/cli/init.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0",
+    "@types/node": "^20.14.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

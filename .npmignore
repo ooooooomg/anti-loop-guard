@@ -1,0 +1,10 @@
+# Only include what npm needs to publish
+# — tests, configs, dev files, and Python caches are excluded
+src/
+test/
+tsconfig.json
+vitest.config.ts
+.gitignore
+.claude/
+__pycache__/
+*.pyc
