@@ -172,3 +172,16 @@ Issues and PRs welcome. Before submitting, please:
 1. Run `npm test` to verify all tests pass
 2. Run `npm run build` to verify TypeScript compilation
 3. Add tests for new detection patterns
+
+## Limitations
+
+- **Heuristic-based**: loop detection relies on pattern heuristics (repetition counts, similarity thresholds). It may produce false positives on legitimate repetitive workflows, or miss novel loop shapes.
+- **CLI-centric**: currently hooks into shell tool-call patterns; coverage of other agent channels (MCP, sub-agents) is limited.
+- **No ML models**: intentionally rule-based for transparency and low overhead, so it does not learn adaptively.
+
+## Contact
+
+This project is under active improvement. For suggestions, bug reports, or collaboration, contact the author:
+
+**AshMe** — <AshMe37@outlook.com>
+
