@@ -3,13 +3,14 @@
 /**
  * anti-loop-guard init — one-command setup for Claude Code.
  *
- * Usage:
- *   npx anti-loop-guard-init            install in current project
- *   npx anti-loop-guard-init --global   install globally (user-level settings)
- *   npx anti-loop-guard-init --hooks    also install PreToolUse + Stop hooks
+ * Usage (from the cloned repository, after `npm install && npm run build`):
+ *   node cli/init.js              install in current project
+ *   node cli/init.js --global     install globally (user-level settings)
+ *   node cli/init.js --hooks      also install PreToolUse + Stop hooks
  *
- * This CLI is SEPARATE from the MCP server binary (anti-loop-guard).
- * The server is configured via the MCP settings that this CLI writes.
+ * This CLI is SEPARATE from the MCP server. The server entry it writes into
+ * MCP settings is an absolute `node <repo>/dist/src/index.js` path — no npm
+ * package or npx involved.
  */
 
 import * as fs from "node:fs";
@@ -25,10 +26,15 @@ const CLAUDE_DIR = path.join(os.homedir(), ".claude");
 const USER_SETTINGS = path.join(CLAUDE_DIR, "settings.json");
 const USER_SETTINGS_LOCAL = path.join(CLAUDE_DIR, "settings.local.json");
 
+// Absolute server entry inside this repository (dist/src/index.js after build).
+// The init CLI ships inside the repo, so this always points at a real file.
+const PKG_ROOT = path.resolve(__dirname, "..", "..");
+const SERVER_ENTRY = path.join(PKG_ROOT, "dist", "src", "index.js");
+
 const MCP_CONFIG = {
   antiLoopGuard: {
-    command: "npx",
-    args: ["anti-loop-guard"],
+    command: process.execPath,
+    args: [SERVER_ENTRY],
     // NOTE: no ANTI_LOOP_SESSION_ID here — the `{{session_id}}` token is a
     // literal placeholder the host doesn't substitute. The server auto-detects
     // and falls back to a per-process id.
@@ -101,15 +107,31 @@ async function main() {
   const settingsPath = useGlobal ? USER_SETTINGS : USER_SETTINGS_LOCAL;
   console.log(`[1/4] Configuring MCP server in ${settingsPath}...`);
 
+  if (!fs.existsSync(SERVER_ENTRY)) {
+    console.error(
+      `  ❌ Server entry not found: ${SERVER_ENTRY}\n` +
+      "     Run `npm install && npm run build` in the repository first.",
+    );
+    process.exit(1);
+  }
+
   let settings: any = {};
   if (fs.existsSync(settingsPath)) {
     try {
       settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
     } catch {
-      console.error("  ⚠️  Could not parse settings file. Creating backup.");
-      if (fs.existsSync(settingsPath)) {
-        fs.copyFileSync(settingsPath, settingsPath + ".bak");
+      // 解析失败绝不覆盖用户配置:留备份并中止(此前会以空对象覆写整个文件)
+      const backup = settingsPath + ".bak";
+      try {
+        fs.copyFileSync(settingsPath, backup);
+      } catch {
+        /* 备份失败也要中止,不覆盖 */
       }
+      console.error(
+        `  ❌ Could not parse ${settingsPath} — NOT overwriting it.\n` +
+        `     A backup was saved to ${backup}. Fix the JSON manually and re-run.`,
+      );
+      process.exit(1);
     }
   }
 
@@ -127,9 +149,11 @@ async function main() {
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf-8");
   console.log(`  ✅ Settings saved.`);
 
-  // 2. Append anti-loop rules to CLAUDE.md
+  // 2. Append anti-loop rules to CLAUDE.md (--global 时写入用户级 ~/.claude/CLAUDE.md)
   console.log("[2/4] Updating CLAUDE.md...");
-  const claudeMdPath = path.join(process.cwd(), "CLAUDE.md");
+  const claudeMdPath = useGlobal
+    ? path.join(CLAUDE_DIR, "CLAUDE.md")
+    : path.join(process.cwd(), "CLAUDE.md");
 
   if (fs.existsSync(claudeMdPath)) {
     const existing = fs.readFileSync(claudeMdPath, "utf-8");
@@ -153,10 +177,12 @@ async function main() {
 
     const py = detectPython();
     if (!py) {
+      // hooks 被显式要求却装不了:必须失败(此前只打印警告,最后仍输出 "is ready!")
       console.error(
         "  ❌ Could not find a Python 3 interpreter (tried `py -3`, `python`, `python3`). " +
-        "Hooks require Python 3. Install Python and re-run with --hooks."
+        "Hooks require Python 3. Install Python and re-run with --hooks.",
       );
+      process.exit(1);
     } else {
       console.log(`  ✅ Using Python interpreter: ${py}`);
 
@@ -230,7 +256,7 @@ async function main() {
 │  Restart Claude Code to activate.    │
 │                                      │
 │  For hook protection, re-run with:   │
-│    npx anti-loop-guard-init --hooks  │
+│    node cli/init.js --hooks          │
 └──────────────────────────────────────┘
 `);
 }

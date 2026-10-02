@@ -16,24 +16,25 @@
 ## 快速开始
 
 ```bash
-npx anti-loop-guard-init
+git clone https://github.com/ooooooomg/anti-loop-guard.git
+cd anti-loop-guard
+npm install && npm run build
+node cli/init.js
 ```
 
 这一个命令会：
-- 将 MCP 服务器添加到你的 Claude Code 设置中
+- 将 MCP 服务器（以绝对路径 `node <repo>/dist/src/index.js` 的形式，不依赖 npm 包与 npx）添加到你的 Claude Code 设置
 - 将反循环规则追加到项目的 `CLAUDE.md`
 - 创建状态目录 `~/.anti-loop-guard/`
 
 重启 Claude Code，保护即刻生效。
-
-> **首次运行：** `npx` 会在第一次使用时下载包，所以首次运行可能需要几秒钟。
 
 > **注意：** 默认安装只添加 MCP 服务器和 CLAUDE.md 规则。要获得真正的**被动**保护——工具调用被自动记录、循环在代理不调用任何工具时就被阻止——需要 `--hooks`。
 
 ### 安装 Hook 保护（推荐）
 
 ```bash
-npx anti-loop-guard-init --hooks
+node cli/init.js --hooks
 ```
 
 hooks 是 Python 3 脚本。安装器会自动探测可用的解释器（Windows 上优先 `py -3`，然后 `python` / `python3`），并把正确的命令写入你的设置——无需手动配置 PATH。
@@ -70,7 +71,7 @@ hooks 是 Python 3 脚本。安装器会自动探测可用的解释器（Windows
 
 ### 上下文预算追踪
 
-基于已发表的 LLM 注意力衰减研究（"Lost in the Middle", TACL 2024; QSAF, arXiv 2507.15330; Claude Code bug #80873）：
+基于已发表的 LLM 注意力衰减研究（"Lost in the Middle", TACL 2024; QSAF, arXiv 2507.15330）：
 
 | 工具调用数 | 风险 | 建议 |
 |----------|------|------|
@@ -108,7 +109,7 @@ Read({ file_path: "/tmp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/output.json" })
 | `anti-loop://status` | 当前循环检测状态：`isStuck`、`riskLevel`、`degradationIndicators`。 |
 | `anti-loop://history` | 最近 10 次工具调用指纹。 |
 
-> **注意：** hook 记录存放在单个全局文件（`~/.anti-loop-guard/hook_records.json`）中，按会话 ID 区分。存在多个并发会话时，其计数器只能视为近似值。
+> **注意：** hook 记录存放在单个全局文件（`~/.anti-loop-guard/hook_records.json`）中。连续重复的拦截按会话 ID 计数，但记录存储本身跨会话共享——多会话并发时，聚合计数（`totalCalls`）只能视为近似值。
 
 ## 对比
 
@@ -133,8 +134,8 @@ Read({ file_path: "/tmp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/output.json" })
 {
   "mcpServers": {
     "anti-loop-guard": {
-      "command": "npx",
-      "args": ["anti-loop-guard"]
+      "command": "node",
+      "args": ["<repo>/dist/src/index.js"]
     }
   }
 }
@@ -142,13 +143,7 @@ Read({ file_path: "/tmp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/output.json" })
 
 > **关于 `ANTI_LOOP_SESSION_ID` 的说明：** 旧版 README 中的 `{{session_id}}` 是字面占位符——Claude Code 的 MCP 配置不会替换它。服务器现在会自动检测这种情况并回退为按进程生成的 ID，所以你可以完全省略该环境变量。
 
-### 全局安装
-
-```bash
-npm install -g anti-loop-guard
-```
-
-然后将配置中的 `"command": "npx"` 替换为 `"command": "anti-loop-guard"`。
+手动配置前需在仓库中执行一次 `npm install && npm run build`。本项目不发布 npm 包——服务器始终从本地克隆运行，升级方式为 `git pull && npm install && npm run build`。
 
 ## 研究背景
 
@@ -157,9 +152,7 @@ npm install -g anti-loop-guard
 - **Liu et al., "Lost in the Middle," TACL 2024** — U 形注意力曲线；中间段落信息被系统性忽视
 - **Pipis et al., "Wait, Wait, Wait... Why Do Reasoning Models Loop?" ICML 2026** — Token 级自强化导致循环陷入
 - **"Frayed RoPE," arXiv 2603.18017** — 极端序列长度下的位置编码坍缩
-- **"Contextual Inertia," ACL 2026 Findings** — 会话越长，代理越倾向于重复已有模式
 - **QSAF (arXiv 2507.15330)** — 代理 AI 的认知退化框架
-- **Claude Code bug #80873** — CLAUDE.md 规则在 5-10 轮后"衰减"
 
 ## 许可证
 
@@ -183,5 +176,5 @@ MIT — 详见 [LICENSE](./LICENSE)
 
 本项目仍在改进中。如有建议、bug 报告或合作意向，欢迎联系作者：
 
-**AshMe** — <AshMe37@outlook.com>
+**Ash** — <AshMe37@outlook.com>
 

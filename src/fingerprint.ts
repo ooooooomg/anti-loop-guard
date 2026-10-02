@@ -68,30 +68,36 @@ export function similarity(a: string, b: string): number {
 
 // ---- internal helpers ----
 
-function normalizeDeep(value: unknown): unknown {
+function normalizeDeep(value: unknown, depth = 0): unknown {
   if (typeof value === "string") {
     return maskNoise(value);
   }
   if (Array.isArray(value)) {
     // if the array is large, sort to eliminate order effects (for sets)
-    const arr = value.map(normalizeDeep);
+    // depth resets inside arrays — mirrors the old limitDepth() behavior,
+    // which only counted depth along dict chains
+    const arr = value.map((v) => normalizeDeep(v, 0));
     if (arr.length > 20) {
       return [...arr].sort(); // treat as set
     }
     return arr;
   }
   if (value !== null && typeof value === "object") {
+    // inline depth limit: nesting beyond 10 dict levels collapses to a marker
+    // (previously done by a second limitDepth() walk after full recursion —
+    // same output, but that version revisited every node per level and could
+    // overflow the stack on adversarially deep input)
+    if (depth >= 10) return "<DEEP>";
     const obj = value as Record<string, unknown>;
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(obj).sort()) {
       if (VOLATILE_KEYS.has(key)) {
         out[key] = "<VOLATILE>";
       } else {
-        out[key] = normalizeDeep(obj[key]);
+        out[key] = normalizeDeep(obj[key], depth + 1);
       }
     }
-    // limit nesting depth
-    return limitDepth(out, 10);
+    return out;
   }
   return value;
 }
@@ -105,20 +111,6 @@ function maskNoise(s: string): string {
     .replace(TIMESTAMP_UNIX_RE, "<UNIX_TS>")
     .replace(SEMVER_RE, "<SEMVER>")
     .replace(/\d+/g, (m) => (m.length >= 5 ? "<NUM>" : m)); // large numbers → generic
-}
-
-function limitDepth(obj: Record<string, unknown>, maxDepth: number, depth = 0): unknown {
-  if (depth >= maxDepth) return "<DEEP>";
-  const out: Record<string, unknown> = {};
-  for (const key of Object.keys(obj)) {
-    const v = obj[key];
-    if (v !== null && typeof v === "object" && !Array.isArray(v)) {
-      out[key] = limitDepth(v as Record<string, unknown>, maxDepth, depth + 1);
-    } else {
-      out[key] = v;
-    }
-  }
-  return out;
 }
 
 /** Deterministic JSON serialization (sorted keys). */

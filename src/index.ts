@@ -42,7 +42,7 @@ const HOOKS_ENABLED = process.env.ANTI_LOOP_HOOKS_ENABLED === "true";
 const server = new Server(
   {
     name: "anti-loop-guard",
-    version: "1.0.0",
+    version: "1.1.0",
   },
   {
     capabilities: {

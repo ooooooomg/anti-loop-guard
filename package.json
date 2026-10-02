@@ -34,7 +34,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/src/index.js",
-    "test": "npx vitest run",
+    "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm test",
     "cli": "node dist/cli/init.js"

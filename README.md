@@ -16,24 +16,25 @@ All existing anti-loop tools for Claude Code share the same fatal flaw: **they r
 ## Quick Start
 
 ```bash
-npx anti-loop-guard-init
+git clone https://github.com/ooooooomg/anti-loop-guard.git
+cd anti-loop-guard
+npm install && npm run build
+node cli/init.js
 ```
 
 This one command:
-- Adds the MCP server to your Claude Code settings
+- Adds the MCP server (as an absolute `node <repo>/dist/src/index.js` entry — no npm package, no npx) to your Claude Code settings
 - Appends anti-loop rules to your project's `CLAUDE.md`
 - Creates the state directory `~/.anti-loop-guard/`
 
 Restart Claude Code, and you're protected.
-
-> **First run:** `npx` downloads the package on first use, so the very first run may take a few seconds.
 
 > **Note:** The default install adds the MCP server and CLAUDE.md rules. For true **passive** protection — where tool calls are recorded automatically and loops are blocked without the agent calling any tool — you need `--hooks`.
 
 ### With Hook Protection (Recommended)
 
 ```bash
-npx anti-loop-guard-init --hooks
+node cli/init.js --hooks
 ```
 
 The hooks are Python 3 scripts. The installer auto-detects an interpreter (`py -3` on Windows, then `python` / `python3`) and writes the correct command into your settings — no manual PATH setup needed.
@@ -70,7 +71,7 @@ Thresholds tighten as the session lengthens — because LLM degradation is a kno
 
 ### Context Budget Tracking
 
-Based on published research on LLM attention decay ("Lost in the Middle", TACL 2024; QSAF, arXiv 2507.15330; Claude Code bug #80873):
+Based on published research on LLM attention decay ("Lost in the Middle", TACL 2024; QSAF, arXiv 2507.15330):
 
 | Tool calls | Risk | Recommendation |
 |------------|------|----------------|
@@ -108,7 +109,7 @@ Read({ file_path: "/tmp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/output.json" })
 | `anti-loop://status` | Current loop detection status: `isStuck`, `riskLevel`, `degradationIndicators`. |
 | `anti-loop://history` | Last 10 tool call fingerprints. |
 
-> **Note:** hook records live in a single global file (`~/.anti-loop-guard/hook_records.json`) scoped by session id. With multiple concurrent sessions, treat its counters as approximate.
+> **Note:** hook records live in a single global file (`~/.anti-loop-guard/hook_records.json`). Consecutive-repeat enforcement counts per session id, but the record store itself is shared across sessions — with multiple concurrent sessions, treat aggregate counters (`totalCalls`) as approximate.
 
 ## Comparison
 
@@ -127,39 +128,31 @@ Read({ file_path: "/tmp/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/output.json" })
 
 ### Manual
 
-Add to `.claude/settings.json` or `.claude/settings.local.json`:
+Add to `.claude/settings.json` or `.claude/settings.local.json` (replace `<repo>` with the absolute path of your clone):
 
 ```json
 {
   "mcpServers": {
     "anti-loop-guard": {
-      "command": "npx",
-      "args": ["anti-loop-guard"]
+      "command": "node",
+      "args": ["<repo>/dist/src/index.js"]
     }
   }
 }
 ```
 
+Requires a one-time `npm install && npm run build` in the repository. There is no npm package — the server always runs from your local clone, so upgrades are `git pull && npm install && npm run build`.
+
 > **Note on `ANTI_LOOP_SESSION_ID`:** the `{{session_id}}` token in older versions of this README was a literal placeholder — Claude Code's MCP config does not substitute it. The server now detects that case and falls back to a per-process id automatically, so you can omit the env var entirely.
-
-### Global install
-
-```bash
-npm install -g anti-loop-guard
-```
-
-Then configure with `"command": "anti-loop-guard"` instead of `"command": "npx"`.
 
 ## Research Background
 
-This tool is grounded in peer-reviewed research on LLM degradation in long contexts:
+This tool is grounded in published research on LLM degradation in long contexts:
 
 - **Liu et al., "Lost in the Middle," TACL 2024** — U-shaped attention curve; mid-context information is systematically ignored
 - **Pipis et al., "Wait, Wait, Wait... Why Do Reasoning Models Loop?" ICML 2026** — Token-level self-reinforcement causes loop entrapment
 - **"Frayed RoPE," arXiv 2603.18017** — Positional encoding collapse at extreme sequence lengths
-- **"Contextual Inertia," ACL 2026 Findings** — Agents increasingly reproduce prior patterns as sessions lengthen
 - **QSAF (arXiv 2507.15330)** — Cognitive degradation framework for agentic AI
-- **Claude Code bug #80873** — CLAUDE.md rules "fade" after 5-10 turns
 
 ## License
 
@@ -183,5 +176,5 @@ Issues and PRs welcome. Before submitting, please:
 
 This project is under active improvement. For suggestions, bug reports, or collaboration, contact the author:
 
-**AshMe** — <AshMe37@outlook.com>
+**Ash** — <AshMe37@outlook.com>
 

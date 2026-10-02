@@ -1,11 +1,11 @@
 /**
  * Core loop detection engine.
  *
- * Three-layer detection strategy:
+ * Three-layer detection strategy (checked in this order by detectLoop()):
  *
  * Layer 1 — Exact Repeat: same (tool, normalized_args) N+ times consecutively.
- * Layer 2 — Semantic Similarity: different tools/args but high fingerprint similarity.
- * Layer 3 — Pattern Cycle: repeating A→B→C→A→B→C sequences.
+ * Layer 2 — Pattern Cycle: repeating A→B→C→A→B→C sequences.
+ * Layer 3 — Semantic Similarity: different tools/args but high fingerprint similarity.
  *
  * All thresholds scale adaptively with session length (see config.ts).
  *

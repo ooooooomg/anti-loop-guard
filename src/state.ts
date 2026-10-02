@@ -53,25 +53,20 @@ let state: SessionState = {
 // last hook file signature seen — avoids re-merging unchanged data
 let lastHookSync: { mtimeMs: number; size: number } | null = null;
 
+function stateDir(): string {
+  return DEFAULT_STATE_DIR || path.join(os.homedir(), ".anti-loop-guard");
+}
+
 function stateFilePath(): string {
-  return path.join(
-    DEFAULT_STATE_DIR || path.join(os.homedir(), ".anti-loop-guard"),
-    "session_state.json"
-  );
+  return path.join(stateDir(), "session_state.json");
 }
 
 function hookFilePath(): string {
-  return path.join(
-    DEFAULT_STATE_DIR || path.join(os.homedir(), ".anti-loop-guard"),
-    "hook_records.json"
-  );
+  return path.join(stateDir(), "hook_records.json");
 }
 
 function outputCacheFilePath(): string {
-  return path.join(
-    DEFAULT_STATE_DIR || path.join(os.homedir(), ".anti-loop-guard"),
-    "output_cache.json"
-  );
+  return path.join(stateDir(), "output_cache.json");
 }
 
 // ---- public API ----
@@ -124,11 +119,6 @@ export function getTotalCalls(): number {
 }
 
 export function getBlockedCount(): number {
-  return state.blockedCount;
-}
-
-export function incrementBlockedCount(): number {
-  state.blockedCount++;
   return state.blockedCount;
 }
 

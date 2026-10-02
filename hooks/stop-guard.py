@@ -11,15 +11,17 @@ common in normal cooperative output, and Stop-hook output only supports
 block/allow (no soft warning), so blocking on them caused a
 block → regenerate → block cascade.
 
-Install: npx anti-loop-guard init --hooks
+Install: node cli/init.js --hooks   (from the cloned repository)
 """
 
 import json
+import os
 import sys
 from difflib import SequenceMatcher
 from pathlib import Path
 
-STATE_DIR = Path.home() / ".anti-loop-guard"
+# 与 pre-tool-use.py / src/config.ts 相同的目录解析规则
+STATE_DIR = Path(os.environ.get("ANTI_LOOP_STATE_DIR") or (Path.home() / ".anti-loop-guard"))
 OUTPUT_CACHE = STATE_DIR / "output_cache.json"
 MAX_CACHE = 3
 SIMILARITY_THRESHOLD = 0.92
@@ -68,10 +70,25 @@ def extract_assistant_text(data):
             try:
                 with open(transcript) as f:
                     lines = f.readlines()
-                    # Get last few assistant lines
-                    assistant_lines = [l for l in lines[-20:] if '"role":"assistant"' in l]
-                    if assistant_lines:
-                        return assistant_lines[-1]
+                # Get last few assistant lines
+                assistant_lines = [l for l in lines[-20:] if '"role":"assistant"' in l or '"type":"assistant"' in l]
+                if assistant_lines:
+                    # transcript 行是完整 JSON —— 解析出纯文本再做重复/相似检测
+                    # (此前直接返回整行 JSON,与 messages 分支的纯文本语义不一致)
+                    for line in reversed(assistant_lines):
+                        try:
+                            entry = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        msg = entry.get("message", entry)
+                        content = msg.get("content", "")
+                        if isinstance(content, list):
+                            text = " ".join(c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text")
+                        else:
+                            text = str(content)
+                        if text:
+                            return text
+                    return ""
             except Exception:
                 pass
         return ""
