@@ -18,4 +18,6 @@ jobs:
       - run: npm run build
       - run: npm test
       - name: Python hooks tests
-        run: python -m unittest test.test_hooks -v
+        # discover 方式导入:点号导入 test.test_hooks 会被 Linux stdlib 自带的
+        # test 包截胡(CPython 完整安装含 Lib/test),Windows 本机无此包故未暴露
+        run: python -m unittest discover -s test -p "test_hooks.py" -v
